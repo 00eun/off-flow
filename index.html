@@ -127,6 +127,11 @@
       <button onclick="switchNav('mypage')" id="nav-btn-mypage" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
         📦 내 아카이브
       </button>
+      <button onclick="switchNav('crm')" id="nav-btn-crm" class="px-3 py-1.5 rounded-xl text-purple-600 bg-purple-50/70 hover:bg-purple-100 font-bold whitespace-nowrap transition-all border border-purple-200/50 flex items-center gap-1.5 shadow-xs">
+        <span>📋</span>
+        <span>공방 CRM 보드</span>
+        <span class="text-[9px] bg-purple-600 text-white px-1.5 py-0.2 rounded-full font-bold">NEW</span>
+      </button>
     </div>
   </header>
 
@@ -265,10 +270,195 @@
           <span id="mp-count" class="text-xs text-slate-400">0개</span>
         </div>
         <div id="mp-posts-container" class="grid grid-cols-2 gap-2.5"></div>
+    <!-- MINI CRM KANBAN BOARD SECTION -->
+    <div id="section-crm" class="hidden space-y-3">
+      <!-- CRM Header & Summary Bar -->
+      <div class="bg-white border border-purple-100 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📋</span>
+              <h2 class="text-base font-bold text-slate-900">공방 주문 & 고객 관리 CRM</h2>
+              <span class="text-[10px] bg-purple-100 text-purple-700 font-extrabold px-2 py-0.5 rounded-full">실시간 파이프라인</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              상담부터 정산, 배송, 긴급 재제작까지 카드를 드래그하여 한눈에 관리하세요.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="openNewCrmOrderModal()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-purple-200 transition-all active:scale-95 flex items-center gap-1.5">
+              <span>+</span>
+              <span>새 주문·고객 등록</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-xs">
+          <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+            <div class="text-[10px] text-slate-400 font-medium">총 진행 주문</div>
+            <div id="crm-stat-total-orders" class="text-sm font-bold text-slate-800 mt-0.5">0건</div>
+          </div>
+          <div class="p-2.5 bg-purple-50 rounded-2xl border border-purple-100">
+            <div class="text-[10px] text-purple-600 font-bold">💳 예상 매출액</div>
+            <div id="crm-stat-total-revenue" class="text-sm font-bold text-purple-700 mt-0.5">0원</div>
+          </div>
+          <div class="p-2.5 bg-amber-50 rounded-2xl border border-amber-100">
+            <div class="text-[10px] text-amber-600 font-bold">🧶 제작 중인 주문</div>
+            <div id="crm-stat-in-making" class="text-sm font-bold text-amber-700 mt-0.5">0건</div>
+          </div>
+          <div class="p-2.5 bg-pink-50 rounded-2xl border border-pink-100">
+            <div class="text-[10px] text-pink-600 font-bold">🍂 궤도이탈(재제작/SOS)</div>
+            <div id="crm-stat-remake" class="text-sm font-bold text-pink-700 mt-0.5">0건</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kanban Columns Container (Horizontal Scrollable) -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-start overflow-x-auto pb-4">
+        
+        <!-- Col 1: 상담 / 견적 -->
+        <div class="bg-slate-100/80 rounded-2xl p-3 border border-slate-200/60 flex flex-col min-h-[380px]" ondragover="allowCrmDrop(event)" ondrop="handleCrmDrop(event, 'consult')">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-200/70 mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              <span class="text-xs font-bold text-slate-700">1. 상담·견적</span>
+            </div>
+            <span id="badge-count-consult" class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </div>
+          <div id="crm-col-consult" class="space-y-2 flex-1"></div>
+        </div>
+
+        <!-- Col 2: 입금 완료 -->
+        <div class="bg-blue-50/50 rounded-2xl p-3 border border-blue-200/60 flex flex-col min-h-[380px]" ondragover="allowCrmDrop(event)" ondrop="handleCrmDrop(event, 'paid')">
+          <div class="flex items-center justify-between pb-2 border-b border-blue-200/70 mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <span class="text-xs font-bold text-blue-900">2. 입금확인</span>
+            </div>
+            <span id="badge-count-paid" class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </div>
+          <div id="crm-col-paid" class="space-y-2 flex-1"></div>
+        </div>
+
+        <!-- Col 3: 제작 중 -->
+        <div class="bg-amber-50/50 rounded-2xl p-3 border border-amber-200/60 flex flex-col min-h-[380px]" ondragover="allowCrmDrop(event)" ondrop="handleCrmDrop(event, 'making')">
+          <div class="flex items-center justify-between pb-2 border-b border-amber-200/70 mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              <span class="text-xs font-bold text-amber-900">3. 정성 제작중 🧶</span>
+            </div>
+            <span id="badge-count-making" class="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </div>
+          <div id="crm-col-making" class="space-y-2 flex-1"></div>
+        </div>
+
+        <!-- Col 4: 궤도 이탈 / 재제작 (Off-Flow 특화!) -->
+        <div class="bg-pink-50/50 rounded-2xl p-3 border border-pink-200/60 flex flex-col min-h-[380px]" ondragover="allowCrmDrop(event)" ondrop="handleCrmDrop(event, 'remake')">
+          <div class="flex items-center justify-between pb-2 border-b border-pink-200/70 mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-pink-500 animate-pulse"></span>
+              <span class="text-xs font-bold text-pink-900">4. 삐끗·재제작 🍂</span>
+            </div>
+            <span id="badge-count-remake" class="text-[10px] bg-pink-100 text-pink-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </div>
+          <div id="crm-col-remake" class="space-y-2 flex-1"></div>
+        </div>
+
+        <!-- Col 5: 배송 완료 & 단골 -->
+        <div class="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-200/60 flex flex-col min-h-[380px]" ondragover="allowCrmDrop(event)" ondrop="handleCrmDrop(event, 'delivered')">
+          <div class="flex items-center justify-between pb-2 border-b border-emerald-200/70 mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span class="text-xs font-bold text-emerald-900">5. 배송완료·단골 🌸</span>
+            </div>
+            <span id="badge-count-delivered" class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.2 rounded-full font-bold">0</span>
+          </div>
+          <div id="crm-col-delivered" class="space-y-2 flex-1"></div>
+        </div>
+
       </div>
     </div>
 
   </main>
+
+  <!-- 📋 CRM 주문 등록/수정 모달 -->
+  <div id="crm-order-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 z-50 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl my-auto border border-purple-100 space-y-3 text-left">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 class="text-xs font-bold flex items-center gap-1.5 text-slate-900">
+          <span>📋</span>
+          <span id="crm-modal-title">새 고객 주문 등록</span>
+        </h3>
+        <button onclick="closeCrmOrderModal()" class="text-xs font-bold text-slate-400 hover:text-slate-700">✕</button>
+      </div>
+
+      <form id="crm-order-form" onsubmit="handleCrmOrderSubmit(event)" class="space-y-2.5 text-xs">
+        <input type="hidden" id="crm-edit-id">
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">고객명 / 닉네임 *</label>
+            <input type="text" id="crm-cust-name" required placeholder="예: 김민지 고객님" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">연락처 / SNS</label>
+            <input type="text" id="crm-cust-contact" placeholder="예: @minji_craft / 010-..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">주문 작품명 *</label>
+            <input type="text" id="crm-item-name" required placeholder="예: 맞춤 롭이어 모루인형 키링" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">결제/견적 금액 (원) *</label>
+            <input type="number" id="crm-price" required placeholder="예: 35000" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">파이프라인 단계</label>
+            <select id="crm-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+              <option value="consult">1. 상담·견적</option>
+              <option value="paid">2. 입금확인</option>
+              <option value="making">3. 정성 제작중</option>
+              <option value="remake">4. 삐끗·재제작 (SOS)</option>
+              <option value="delivered">5. 배송완료·단골</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">희망 마감일</label>
+            <input type="date" id="crm-due-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">고객 특별 요청사항 & 제작 메모</label>
+          <textarea id="crm-memo" rows="2" placeholder="예: 눈은 분홍색 비즈로 달아주시고, 가방 리본은 연보라색 희망" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"></textarea>
+        </div>
+
+        <!-- 💌 AI 고객 양해 문자 생성기 (삐끗했을 때!) -->
+        <div class="p-2.5 bg-pink-50 border border-pink-200 rounded-2xl flex items-center justify-between">
+          <div>
+            <div class="font-bold text-[11px] text-pink-900">✨ AI 고객 양해·안내 메시지</div>
+            <div class="text-[10px] text-slate-500">제작 중 실수가 났을 때 정중한 안내 문자 자동 생성</div>
+          </div>
+          <button type="button" onclick="generateAiCustomerNotice()" class="px-2.5 py-1 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-[10px] font-bold shadow-xs">
+            문구 생성
+          </button>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeCrmOrderModal()" class="px-3.5 py-2 border border-slate-200 rounded-xl text-slate-500">취소</button>
+          <button type="submit" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-95 text-white font-bold rounded-xl shadow-xs">저장하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- 📖 상세 페이지 (이상 vs 현실 + 분향소 + 사망진단서) -->
   <div id="detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 z-50 overflow-y-auto">
@@ -1450,24 +1640,293 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
       renderFeed();
     }
 
+    // ==========================================
+    // 📋 MINI CRM KANBAN BOARD LOGIC
+    // ==========================================
+    let crmOrders = JSON.parse(localStorage.getItem('off_flow_crm_orders')) || [
+      {
+        id: 101,
+        custName: '김민지 님',
+        custContact: '@minji_rabbit',
+        itemName: '맞춤 롭이어 모루인형 키링',
+        price: 38000,
+        status: 'making',
+        dueDate: '2026-11-05',
+        memo: '연보라색 리본 포인트, 가방 고리는 하트 모양 희망'
+      },
+      {
+        id: 102,
+        custName: '이수현 님',
+        custContact: '010-8921-XXXX',
+        itemName: '커스텀 생토노레 홀케이크',
+        price: 52000,
+        status: 'remake',
+        dueDate: '2026-10-31',
+        memo: '슈 반죽 굽기 중 팽창 과다로 모양 이탈! 재제작 진행 필요 🍂'
+      },
+      {
+        id: 103,
+        custName: '박서연 님',
+        custContact: '@seoyeon_clay',
+        itemName: '미니 달항아리 오브제 2set',
+        price: 76000,
+        status: 'paid',
+        dueDate: '2026-11-12',
+        memo: '무광 백자 느낌으로 주문 요청, 입금 확인 완료'
+      },
+      {
+        id: 104,
+        custName: '정우진 님',
+        custContact: '카톡 문의',
+        itemName: '바다 레진 코스터 세트',
+        price: 24000,
+        status: 'consult',
+        dueDate: '2026-11-20',
+        memo: '파도 기포 효과 견적 문의 중'
+      },
+      {
+        id: 105,
+        custName: '최유나 단골님 💖',
+        custContact: '@yuna_craft',
+        itemName: '겨울 폼폼 비니 인형',
+        price: 45000,
+        status: 'delivered',
+        dueDate: '2026-10-25',
+        memo: '배송 완료! 리뷰 5점 별점 남겨주심 🌸'
+      }
+    ];
+
+    let draggedOrderId = null;
+
+    function saveCrmOrders() {
+      localStorage.setItem('off_flow_crm_orders', JSON.stringify(crmOrders));
+      renderCrmBoard();
+    }
+
+    function renderCrmBoard() {
+      const cols = {
+        consult: document.getElementById('crm-col-consult'),
+        paid: document.getElementById('crm-col-paid'),
+        making: document.getElementById('crm-col-making'),
+        remake: document.getElementById('crm-col-remake'),
+        delivered: document.getElementById('crm-col-delivered')
+      };
+
+      if (!cols.consult) return;
+
+      // Clear columns
+      Object.keys(cols).forEach(key => {
+        cols[key].innerHTML = '';
+        const badge = document.getElementById(`badge-count-${key}`);
+        if (badge) badge.innerText = '0';
+      });
+
+      let totalRevenue = 0;
+      let inMakingCount = 0;
+      let remakeCount = 0;
+
+      const counts = { consult: 0, paid: 0, making: 0, remake: 0, delivered: 0 };
+
+      crmOrders.forEach(order => {
+        counts[order.status] = (counts[order.status] || 0) + 1;
+        totalRevenue += Number(order.price) || 0;
+        if (order.status === 'making') inMakingCount++;
+        if (order.status === 'remake') remakeCount++;
+
+        const card = document.createElement('div');
+        card.className = "bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-2 select-none group";
+        card.draggable = true;
+        card.id = `crm-card-${order.id}`;
+
+        card.ondragstart = (e) => {
+          draggedOrderId = order.id;
+          e.dataTransfer.setData('text/plain', order.id);
+          card.classList.add('opacity-50');
+        };
+        card.ondragend = () => {
+          card.classList.remove('opacity-50');
+        };
+
+        const statusTagMap = {
+          consult: '<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">상담중</span>',
+          paid: '<span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">입금확인</span>',
+          making: '<span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">제작중 🧶</span>',
+          remake: '<span class="text-[9px] bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-bold animate-pulse">재제작 🍂</span>',
+          delivered: '<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">완료 🌸</span>'
+        };
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-1">
+            <span class="font-bold text-xs text-slate-800 leading-tight">${order.custName}</span>
+            ${statusTagMap[order.status] || ''}
+          </div>
+          <div class="text-[11px] font-semibold text-slate-700 line-clamp-1">${order.itemName}</div>
+          ${order.memo ? `<div class="text-[10px] text-slate-400 bg-slate-50 p-1.5 rounded-lg border border-slate-100 line-clamp-2">${order.memo}</div>` : ''}
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
+            <span class="font-bold text-purple-700">${Number(order.price).toLocaleString()}원</span>
+            <span class="text-slate-400 font-mono">${order.dueDate ? '📅 ' + order.dueDate.slice(5) : '기한 미정'}</span>
+          </div>
+          <div class="flex items-center justify-end gap-1.5 pt-1 text-[10px]">
+            <button onclick="editCrmOrder(${order.id})" class="text-slate-400 hover:text-slate-700 font-medium px-1">수정</button>
+            <button onclick="deleteCrmOrder(${order.id})" class="text-rose-400 hover:text-rose-600 font-medium px-1">삭제</button>
+          </div>
+        `;
+
+        if (cols[order.status]) {
+          cols[order.status].appendChild(card);
+        }
+      });
+
+      // Update counters
+      Object.keys(counts).forEach(k => {
+        const badge = document.getElementById(`badge-count-${k}`);
+        if (badge) badge.innerText = counts[k];
+      });
+
+      const statTotal = document.getElementById('crm-stat-total-orders');
+      const statRevenue = document.getElementById('crm-stat-total-revenue');
+      const statMaking = document.getElementById('crm-stat-in-making');
+      const statRemake = document.getElementById('crm-stat-remake');
+
+      if (statTotal) statTotal.innerText = `${crmOrders.length}건`;
+      if (statRevenue) statRevenue.innerText = `${totalRevenue.toLocaleString()}원`;
+      if (statMaking) statMaking.innerText = `${inMakingCount}건`;
+      if (statRemake) statRemake.innerText = `${remakeCount}건`;
+    }
+
+    function allowCrmDrop(e) {
+      e.preventDefault();
+    }
+
+    function handleCrmDrop(e, newStatus) {
+      e.preventDefault();
+      if (!draggedOrderId) return;
+      const order = crmOrders.find(o => o.id === draggedOrderId);
+      if (order && order.status !== newStatus) {
+        order.status = newStatus;
+        playMemorialSound('flower');
+        saveCrmOrders();
+      }
+      draggedOrderId = null;
+    }
+
+    function openNewCrmOrderModal() {
+      document.getElementById('crm-modal-title').innerText = "새 고객 주문 등록";
+      document.getElementById('crm-edit-id').value = '';
+      document.getElementById('crm-order-form').reset();
+      document.getElementById('crm-order-modal').classList.remove('hidden');
+      document.getElementById('crm-order-modal').classList.add('flex');
+    }
+
+    function closeCrmOrderModal() {
+      document.getElementById('crm-order-modal').classList.add('hidden');
+      document.getElementById('crm-order-modal').classList.remove('flex');
+    }
+
+    function editCrmOrder(id) {
+      const order = crmOrders.find(o => o.id === id);
+      if (!order) return;
+      document.getElementById('crm-modal-title').innerText = "주문 정보 수정";
+      document.getElementById('crm-edit-id').value = order.id;
+      document.getElementById('crm-cust-name').value = order.custName;
+      document.getElementById('crm-cust-contact').value = order.custContact || '';
+      document.getElementById('crm-item-name').value = order.itemName;
+      document.getElementById('crm-price').value = order.price;
+      document.getElementById('crm-status').value = order.status;
+      document.getElementById('crm-due-date').value = order.dueDate || '';
+      document.getElementById('crm-memo').value = order.memo || '';
+
+      document.getElementById('crm-order-modal').classList.remove('hidden');
+      document.getElementById('crm-order-modal').classList.add('flex');
+    }
+
+    function deleteCrmOrder(id) {
+      if (confirm("이 주문 카드를 정말 삭제하시겠습니까?")) {
+        crmOrders = crmOrders.filter(o => o.id !== id);
+        saveCrmOrders();
+      }
+    }
+
+    function handleCrmOrderSubmit(e) {
+      e.preventDefault();
+      const editId = document.getElementById('crm-edit-id').value;
+      const custName = document.getElementById('crm-cust-name').value.trim();
+      const custContact = document.getElementById('crm-cust-contact').value.trim();
+      const itemName = document.getElementById('crm-item-name').value.trim();
+      const price = Number(document.getElementById('crm-price').value) || 0;
+      const status = document.getElementById('crm-status').value;
+      const dueDate = document.getElementById('crm-due-date').value;
+      const memo = document.getElementById('crm-memo').value.trim();
+
+      if (editId) {
+        const order = crmOrders.find(o => o.id === Number(editId));
+        if (order) {
+          order.custName = custName;
+          order.custContact = custContact;
+          order.itemName = itemName;
+          order.price = price;
+          order.status = status;
+          order.dueDate = dueDate;
+          order.memo = memo;
+        }
+      } else {
+        crmOrders.unshift({
+          id: Date.now(),
+          custName,
+          custContact,
+          itemName,
+          price,
+          status,
+          dueDate,
+          memo
+        });
+      }
+
+      closeCrmOrderModal();
+      saveCrmOrders();
+    }
+
+    // 💌 Gemini 기반 또는 감성적인 AI 고객 양해 문자 자동 생성기
+    function generateAiCustomerNotice() {
+      const custName = document.getElementById('crm-cust-name').value.trim() || '고객님';
+      const itemName = document.getElementById('crm-item-name').value.trim() || '의뢰해 주신 작품';
+      const memo = document.getElementById('crm-memo');
+
+      const templates = [
+        `안녕하세요 ${custName}! Off-Flow 공방입니다 🌸\n의뢰해 주신 [${itemName}]을 정성껏 작업하던 중, 더 완벽한 퀄리티와 마감을 위해 처음부터 다시 정성스레 재제작을 진행하고 있습니다. 소중한 작품인 만큼 더 높은 완성도로 보답하겠습니다. 조금만 기다려 주시면 정성 가득 담아 안전하게 배송해 드리겠습니다!`,
+        `안녕하세요 ${custName}! 🧶\n주문해 주신 [${itemName}]의 디테일을 다듬는 과정에서 미세한 궤도 이탈(실수)이 발견되어, 타협하지 않고 새로 정성 들여 빚고 있습니다! 조금 더 단단하고 아름답게 완성하여 곧 발송 소식 전해드릴게요. 늘 기다려주셔서 진심으로 감사드립니다.`
+      ];
+
+      const picked = templates[Math.floor(Math.random() * templates.length)];
+      if (memo) {
+        memo.value = (memo.value ? memo.value + '\n\n' : '') + `[고객 양해 문자 추천]\n` + picked;
+        alert("✨ 고객님께 보낼 정중하고 다정한 양해 문구가 메모란에 추가되었습니다!");
+      }
+    }
+
     function switchNav(nav) {
       currentNav = nav;
-      document.getElementById('section-feed').classList.toggle('hidden', nav === 'mypage' || nav === 'sos');
+      document.getElementById('section-feed').classList.toggle('hidden', nav === 'mypage' || nav === 'sos' || nav === 'crm');
       document.getElementById('section-sos').classList.toggle('hidden', nav !== 'sos');
       document.getElementById('section-mypage').classList.toggle('hidden', nav !== 'mypage');
+      document.getElementById('section-crm').classList.toggle('hidden', nav !== 'crm');
 
-      ['feed', 'graveyard', 'masterpiece', 'sos', 'mypage'].forEach(key => {
+      ['feed', 'graveyard', 'masterpiece', 'sos', 'mypage', 'crm'].forEach(key => {
         const btn = document.getElementById(`nav-btn-${key}`);
         if (btn) {
           if (key === nav) {
-            btn.className = "px-3 py-1.5 rounded-xl text-pink-600 bg-pink-50 font-bold whitespace-nowrap transition-all";
+            btn.className = "px-3 py-1.5 rounded-xl text-purple-600 bg-purple-50 font-bold whitespace-nowrap transition-all border border-purple-200/60 shadow-xs";
           } else {
             btn.className = "px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all";
           }
         }
       });
 
-      if (nav !== 'sos' && nav !== 'mypage') renderFeed();
+      if (nav === 'crm') {
+        renderCrmBoard();
+      } else if (nav !== 'sos' && nav !== 'mypage') {
+        renderFeed();
+      }
     }
 
     function filterCategory(cat) {
@@ -1480,6 +1939,8 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
     }
 
     renderFeed();
+    renderCrmBoard();
   </script>
 </body>
 </html>
+
