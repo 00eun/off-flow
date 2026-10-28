@@ -112,12 +112,7 @@
 
     <!-- Navigation Tabs: Pastel Color Accents -->
     <div class="flex items-center gap-1.5 pt-2.5 mt-2.5 border-t border-slate-100 text-xs font-semibold overflow-x-auto no-scrollbar">
-      <button onclick="switchNav('crm')" id="nav-btn-crm" class="px-3.5 py-1.5 rounded-xl text-white bg-gradient-to-r from-purple-600 to-pink-500 font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
-        <span>📋</span>
-        <span>공방 CRM 보드</span>
-        <span class="text-[9px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-bold">HOT</span>
-      </button>
-      <button onclick="switchNav('feed')" id="nav-btn-feed" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
+      <button onclick="switchNav('feed')" id="nav-btn-feed" class="px-3 py-1.5 rounded-xl text-pink-600 bg-pink-50 font-bold whitespace-nowrap transition-all shadow-xs">
         👀 전체 피드
       </button>
       <button onclick="switchNav('graveyard')" id="nav-btn-graveyard" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
@@ -132,14 +127,19 @@
       <button onclick="switchNav('mypage')" id="nav-btn-mypage" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
         📦 내 아카이브
       </button>
+      <button onclick="switchNav('crm')" id="nav-btn-crm" class="px-3 py-1.5 rounded-xl text-purple-600 bg-purple-50/70 hover:bg-purple-100 font-bold whitespace-nowrap transition-all border border-purple-200/50 flex items-center gap-1.5 shadow-xs">
+        <span>📋</span>
+        <span>공방 CRM 보드</span>
+        <span class="text-[9px] bg-purple-600 text-white px-1.5 py-0.2 rounded-full font-bold">🔒 회원전용</span>
+      </button>
     </div>
   </header>
 
   <!-- MAIN VIEW -->
   <main class="flex-1 space-y-3">
 
-    <!-- FEED SECTION -->
-    <div id="section-feed" class="hidden space-y-3">
+    <!-- FEED SECTION (기본 메인 화면) -->
+    <div id="section-feed" class="space-y-3">
       
       <!-- Category Tag Chips: Crisp & Cute -->
       <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
@@ -273,8 +273,8 @@
       </div>
     </div>
 
-    <!-- MINI CRM KANBAN BOARD SECTION (기본 열림) -->
-    <div id="section-crm" class="space-y-3">
+    <!-- MINI CRM KANBAN BOARD SECTION (회원 전용) -->
+    <div id="section-crm" class="hidden space-y-3">
       <!-- CRM Header & Summary Bar -->
       <div class="bg-white border border-purple-100 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1918,6 +1918,14 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
     }
 
     function switchNav(nav) {
+      // 🔒 CRM 보드와 내 아카이브는 회원가입/로그인한 사용자만 접근 가능
+      if ((nav === 'crm' || nav === 'mypage') && !currentUser) {
+        if (confirm("🔒 공방 CRM 주문 관리 보드는 회원 전용 기능입니다.\n지금 무료 회원가입 또는 로그인하시겠습니까? 🌸")) {
+          openLoginModal();
+        }
+        return;
+      }
+
       currentNav = nav;
       document.getElementById('section-feed').classList.toggle('hidden', nav === 'mypage' || nav === 'sos' || nav === 'crm');
       document.getElementById('section-sos').classList.toggle('hidden', nav !== 'sos');
@@ -1928,7 +1936,7 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
         const btn = document.getElementById(`nav-btn-${key}`);
         if (btn) {
           if (key === nav) {
-            btn.className = "px-3 py-1.5 rounded-xl text-purple-600 bg-purple-50 font-bold whitespace-nowrap transition-all border border-purple-200/60 shadow-xs";
+            btn.className = "px-3 py-1.5 rounded-xl text-pink-600 bg-pink-50 font-bold whitespace-nowrap transition-all shadow-xs";
           } else {
             btn.className = "px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all";
           }
@@ -1941,6 +1949,7 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
         renderFeed();
       }
     }
+
 
     function filterCategory(cat) {
       currentCategory = cat;
