@@ -111,26 +111,26 @@
     </div>
 
     <!-- Navigation Tabs: Pastel Color Accents -->
-    <div class="flex items-center gap-1 pt-2.5 mt-2.5 border-t border-slate-100 text-xs font-semibold overflow-x-auto no-scrollbar">
-      <button onclick="switchNav('feed')" id="nav-btn-feed" class="px-3 py-1.5 rounded-xl text-pink-600 bg-pink-50 font-bold whitespace-nowrap transition-all">
+    <div class="flex items-center gap-1.5 pt-2.5 mt-2.5 border-t border-slate-100 text-xs font-semibold overflow-x-auto no-scrollbar">
+      <button onclick="switchNav('crm')" id="nav-btn-crm" class="px-3.5 py-1.5 rounded-xl text-white bg-gradient-to-r from-purple-600 to-pink-500 font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
+        <span>📋</span>
+        <span>공방 CRM 보드</span>
+        <span class="text-[9px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-bold">HOT</span>
+      </button>
+      <button onclick="switchNav('feed')" id="nav-btn-feed" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
         👀 전체 피드
       </button>
       <button onclick="switchNav('graveyard')" id="nav-btn-graveyard" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
-        🍂 Off-Track (실패작 묘지)
+        🍂 Off-Track (실패작)
       </button>
       <button onclick="switchNav('masterpiece')" id="nav-btn-masterpiece" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
-        🌊 On-Flow (완성의 기쁨)
+        🌊 On-Flow (완성작)
       </button>
       <button onclick="switchNav('sos')" id="nav-btn-sos" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
-        🌱 Re-Flow (심폐소생 SOS)
+        🌱 Re-Flow (SOS)
       </button>
       <button onclick="switchNav('mypage')" id="nav-btn-mypage" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
         📦 내 아카이브
-      </button>
-      <button onclick="switchNav('crm')" id="nav-btn-crm" class="px-3 py-1.5 rounded-xl text-purple-600 bg-purple-50/70 hover:bg-purple-100 font-bold whitespace-nowrap transition-all border border-purple-200/50 flex items-center gap-1.5 shadow-xs">
-        <span>📋</span>
-        <span>공방 CRM 보드</span>
-        <span class="text-[9px] bg-purple-600 text-white px-1.5 py-0.2 rounded-full font-bold">NEW</span>
       </button>
     </div>
   </header>
@@ -139,7 +139,7 @@
   <main class="flex-1 space-y-3">
 
     <!-- FEED SECTION -->
-    <div id="section-feed" class="space-y-3">
+    <div id="section-feed" class="hidden space-y-3">
       
       <!-- Category Tag Chips: Crisp & Cute -->
       <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
@@ -273,8 +273,8 @@
       </div>
     </div>
 
-    <!-- MINI CRM KANBAN BOARD SECTION -->
-    <div id="section-crm" class="hidden space-y-3">
+    <!-- MINI CRM KANBAN BOARD SECTION (기본 열림) -->
+    <div id="section-crm" class="space-y-3">
       <!-- CRM Header & Summary Bar -->
       <div class="bg-white border border-purple-100 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1281,20 +1281,18 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
             쉼터 안치 중 🕊️
           </span>
         `;
-      } else {
-        actBar.className = "p-2.5 rounded-2xl border border-purple-100 bg-purple-50/50 flex items-center justify-between gap-2";
-        actBar.innerHTML = `
-          <div class="flex items-center gap-1.5">
-            <button onclick="addCheerDetail(event, ${post.id})" class="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 flex items-center gap-1">
-              <span>👏 다정한 칭찬하기</span>
-              <span id="detail-cheer-num" class="bg-black/20 px-1.5 py-0.2 rounded-full text-[10px]">${post.cheerCount}</span>
-            </button>
-          </div>
-          <span class="text-[11px] text-purple-600 font-semibold">온전한 흐름 기록 🌟</span>
-        `;
       }
 
+      // 🛒 커스텀 제작 주문하기 (구매 의뢰) 버튼 추가
+      actBar.innerHTML += `
+        <button onclick="orderThisItemCustom('${post.title.replace(/'/g, "\\'")}', '${post.author}')" class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 flex items-center gap-1 transition-all">
+          <span>🛒</span>
+          <span>커스텀 제작 의뢰</span>
+        </button>
+      `;
+
       renderDetailComments(post);
+
       document.getElementById('detail-modal').classList.remove('hidden');
       document.getElementById('detail-modal').classList.add('flex');
     }
@@ -1820,6 +1818,18 @@ Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 �
       document.getElementById('crm-order-modal').classList.remove('hidden');
       document.getElementById('crm-order-modal').classList.add('flex');
     }
+
+    // 🛒 작품 상세에서 커스텀 주문 클릭 시 실행되는 함수
+    function orderThisItemCustom(itemTitle, author) {
+      closeDetailModal();
+      openNewCrmOrderModal();
+      document.getElementById('crm-item-name').value = `[커스텀 의뢰] ${itemTitle}`;
+      document.getElementById('crm-cust-name').value = currentUser ? currentUser.nickname : '새 의뢰 고객님';
+      document.getElementById('crm-status').value = 'consult';
+      document.getElementById('crm-memo').value = `작가(${author})님의 작품을 보고 맞춤 제작을 신청하셨습니다.`;
+      switchNav('crm');
+    }
+
 
     function closeCrmOrderModal() {
       document.getElementById('crm-order-modal').classList.add('hidden');
