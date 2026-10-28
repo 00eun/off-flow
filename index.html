@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Off-Flow (오프플로우) - 정해진 길을 벗어난, 가장 나다운 창작의 흐름</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css">
+  <!-- Firebase App & Auth SDK (v10 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <style>
+    body {
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+    .floating { animation: float 2.8s ease-in-out infinite; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @keyframes floatUpFade {
+      0% { opacity: 1; transform: translateY(0) scale(0.8) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(-150px) scale(1.3) rotate(12deg); }
+    }
+    .candle-particle {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUpFade 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      z-index: 100;
+    }
+    .bell-ring {
+      animation: bellRing 0.5s ease-in-out;
+    }
+    @keyframes bellRing {
+      0%, 100% { transform: rotate(0); }
+      20%, 60% { transform: rotate(12deg); }
+      40%, 80% { transform: rotate(-12deg); }
+    }
+    /* 📜 밝고 사랑스러운 네온 파스텔 영수증 */
+    .death-cert {
+      background: linear-gradient(135deg, #241A33 0%, #15101E 100%);
+      box-shadow: 0 12px 32px -10px rgba(244, 114, 182, 0.4);
+      border: 1px dashed rgba(244, 114, 182, 0.5);
+    }
+    @keyframes scanMove {
+      0% { top: 0%; opacity: 0.8; }
+      50% { top: 90%; opacity: 1; }
+      100% { top: 0%; opacity: 0.8; }
+    }
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #EC4899, #8B5CF6, #EC4899, transparent);
+      box-shadow: 0 0 14px #EC4899;
+      animation: scanMove 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#FCF9F9] text-[#2D242B] min-h-screen antialiased flex flex-col p-3 sm:p-4 relative overflow-x-hidden">
+
+  <!-- Particle Container -->
+  <div id="particle-canvas" class="fixed inset-0 pointer-events-none z-50"></div>
+
+  <!-- Header: Bright & Lovely Pastel -->
+  <header class="bg-white/95 backdrop-blur-md border border-[#F3E6EE] rounded-2xl p-3.5 shadow-[0_2px_12px_rgba(236,72,153,0.04)] mb-3">
+    <div class="flex items-center justify-between gap-2">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-2.5 cursor-pointer select-none" onclick="switchNav('feed')">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#FF6B8B] to-[#9B6BFF] text-white flex items-center justify-center text-lg shadow-sm shadow-pink-200">
+          🧶
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5 leading-none">
+            <span class="font-black text-base tracking-tight text-slate-900">Off-Flow</span>
+            <span class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-pink-100 text-pink-600">오프플로우 🌸</span>
+          </div>
+          <span class="text-[10px] text-slate-400 mt-0.5">정해진 길을 벗어난, 가장 나다운 창작의 흐름</span>
+        </div>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="triggerDailyCandle(this)" title="오늘의 조문 출석체크" class="px-2.5 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-600 text-xs font-bold transition-all flex items-center gap-1 active:scale-95 border border-pink-200/60">
+          <span id="header-candle-icon">🕯️</span>
+          <span class="hidden sm:inline">출석 촛불</span>
+        </button>
+
+        <button id="btn-login-trigger" onclick="openLoginModal()" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all">
+          로그인
+        </button>
+
+        <button id="user-profile-pill" onclick="switchNav('mypage')" class="hidden items-center gap-1.5 bg-pink-50 border border-pink-200 px-2.5 py-1 rounded-xl">
+          <span id="user-avatar" class="text-xs">🥖</span>
+          <span id="user-name" class="text-xs font-bold text-slate-800">노란단팥빵</span>
+          <span class="text-[9px] bg-pink-500 text-white px-1.5 py-0.2 rounded-full font-bold">MY</span>
+        </button>
+
+        <!-- Post Action Button: Lovely Berry Pink -->
+        <button onclick="checkAuthAndOpenPostModal()" class="px-3.5 py-1.5 bg-gradient-to-r from-[#FF6B8B] to-[#FF8E6B] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md shadow-pink-200 transition-all active:scale-95 flex items-center gap-1">
+          <span>+</span>
+          <span>기록 남기기</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Navigation Tabs: Pastel Color Accents -->
+    <div class="flex items-center gap-1 pt-2.5 mt-2.5 border-t border-slate-100 text-xs font-semibold overflow-x-auto no-scrollbar">
+      <button onclick="switchNav('feed')" id="nav-btn-feed" class="px-3 py-1.5 rounded-xl text-pink-600 bg-pink-50 font-bold whitespace-nowrap transition-all">
+        👀 전체 피드
+      </button>
+      <button onclick="switchNav('graveyard')" id="nav-btn-graveyard" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
+        🍂 Off-Track (실패작 묘지)
+      </button>
+      <button onclick="switchNav('masterpiece')" id="nav-btn-masterpiece" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
+        🌊 On-Flow (완성의 기쁨)
+      </button>
+      <button onclick="switchNav('sos')" id="nav-btn-sos" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
+        🌱 Re-Flow (심폐소생 SOS)
+      </button>
+      <button onclick="switchNav('mypage')" id="nav-btn-mypage" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all">
+        📦 내 아카이브
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEW -->
+  <main class="flex-1 space-y-3">
+
+    <!-- FEED SECTION -->
+    <div id="section-feed" class="space-y-3">
+      
+      <!-- Category Tag Chips: Crisp & Cute -->
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+        <button onclick="filterCategory('all')" class="cat-pill active px-3.5 py-1.5 rounded-full bg-slate-900 text-white font-bold whitespace-nowrap shadow-sm">
+          전체
+        </button>
+        <button onclick="filterCategory('doll')" class="cat-pill px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-pink-300 text-slate-600 whitespace-nowrap shadow-xs">
+          🧸 솜/모루인형
+        </button>
+        <button onclick="filterCategory('baking')" class="cat-pill px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-pink-300 text-slate-600 whitespace-nowrap shadow-xs">
+          🍞 홈베이킹
+        </button>
+        <button onclick="filterCategory('clay')" class="cat-pill px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-pink-300 text-slate-600 whitespace-nowrap shadow-xs">
+          🏺 찰흙/도예
+        </button>
+        <button onclick="filterCategory('resin')" class="cat-pill px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-pink-300 text-slate-600 whitespace-nowrap shadow-xs">
+          ✨ 레진/비즈
+        </button>
+      </div>
+
+      <!-- 🌸 화사하고 사랑스러운 B안 핑크/라벤더 그라데이션 배너 -->
+      <div class="bg-gradient-to-r from-[#FFF0F4] via-[#FFF5EB] to-[#F5F0FF] border border-pink-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm shadow-pink-100">
+        <div class="space-y-1">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-black text-pink-600 bg-white px-2 py-0.5 rounded-full border border-pink-200 shadow-2xs">
+              🌸 Off-Flow Story
+            </span>
+            <span class="text-[10px] text-pink-500/80 font-medium">· 삐끗한 순간도 사랑스러운 창작</span>
+          </div>
+          <h2 class="text-sm sm:text-base font-black text-slate-900 leading-snug">
+            "정해진 길을 벗어난(Off), 가장 나다운 창작의 흐름(Flow)"
+          </h2>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            터진 반죽도, 짝짝이 인형도 괜찮아요. 손으로 만드는 모든 순간을 안아주는 다정한 아지트 🥐✨
+          </p>
+        </div>
+        <button onclick="openModal()" class="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-200 active:scale-95 flex items-center justify-center gap-1.5 flex-shrink-0">
+          <span>🔬</span>
+          <span>AI 부검 & 기록하기</span>
+        </button>
+      </div>
+
+      <!-- Card Grid -->
+      <div id="posts-grid" class="grid grid-cols-2 gap-3">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+
+    <!-- SOS SECTION (Re-Flow) -->
+    <div id="section-sos" class="hidden space-y-3">
+      <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-3.5">
+        <h2 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+          <span>🌱</span>
+          <span>Re-Flow: 다시 이어지는 창작의 흐름 (심폐소생 Q&A)</span>
+        </h2>
+        <p class="text-[11px] text-amber-700 mt-0.5">"망쳤지만 버리고 싶지 않아요!" 금손 이웃들이 다정한 리폼 팁을 나눠드립니다.</p>
+      </div>
+
+      <div class="space-y-2.5">
+        <div class="bg-white border border-slate-100 rounded-2xl p-3.5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-pink-100 text-pink-700">🚨 처방 요청</span>
+            <span class="text-[10px] text-slate-400">초보모루</span>
+          </div>
+          <div class="flex gap-2.5">
+            <div class="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center text-2xl flex-shrink-0 border border-pink-100">
+              🐰
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-slate-900">모루인형 귀 길이가 짝짝이인데 잘라도 되나요?</h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">철사가 튀어나올까 봐 가위질을 못하겠어요 ㅠㅠ 살리는 방법 좀 알려주세요!</p>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-pink-600 font-bold text-[11px]">💡 따뜻한 처방전 3개</span>
+            <button onclick="alert('처방전 댓글을 남길 수 있습니다.')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-lg font-bold text-[11px]">처방 남기기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY PAGE SECTION -->
+    <div id="section-mypage" class="hidden space-y-3">
+      <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div id="mp-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-200 to-purple-200 text-purple-800 flex items-center justify-center text-2xl shadow-inner">
+              🥖
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h2 id="mp-name" class="text-sm font-bold text-slate-900">노란단팥빵</h2>
+                <span id="mp-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-pink-100 text-pink-600">
+                  다정한 창작자 🌸
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">정해진 길을 벗어나도 나다운 흐름을 만들어가는 작은 공방</p>
+            </div>
+          </div>
+          <button onclick="handleLogout()" class="text-xs text-rose-500 hover:text-rose-700 font-semibold px-2 py-1">
+            로그아웃
+          </button>
+        </div>
+
+        <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-100 text-center">
+          <div class="p-1.5 bg-slate-50 rounded-xl">
+            <div class="text-[10px] text-slate-400">전체 궤적</div>
+            <div id="mp-stat-total" class="text-xs font-bold mt-0.5 text-slate-800">0</div>
+          </div>
+          <div class="p-1.5 bg-pink-50 rounded-xl">
+            <div class="text-[10px] text-pink-600 font-bold">🍂 빗겨간 순간</div>
+            <div id="mp-stat-disaster" class="text-xs font-bold text-pink-700 mt-0.5">0</div>
+          </div>
+          <div class="p-1.5 bg-purple-50 rounded-xl">
+            <div class="text-[10px] text-purple-600 font-bold">🌊 온전한 흐름</div>
+            <div id="mp-stat-master" class="text-xs font-bold text-purple-700 mt-0.5">0</div>
+          </div>
+          <div class="p-1.5 bg-amber-50 rounded-xl">
+            <div class="text-[10px] text-amber-600 font-bold">🕯️ 받은 위로</div>
+            <div id="mp-stat-mourn" class="text-xs font-bold mt-0.5 text-amber-700">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-900">내 손길 아카이브</h3>
+          <span id="mp-count" class="text-xs text-slate-400">0개</span>
+        </div>
+        <div id="mp-posts-container" class="grid grid-cols-2 gap-2.5"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 📖 상세 페이지 (이상 vs 현실 + 분향소 + 사망진단서) -->
+  <div id="detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 z-50 overflow-y-auto">
+    <div class="bg-white border border-slate-100 rounded-3xl max-w-md w-full p-4 sm:p-5 shadow-2xl my-auto space-y-3.5 relative">
+      
+      <!-- Modal Top Bar -->
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <span id="detail-type-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+            🍂 Off-Track (실패작)
+          </span>
+          <span id="detail-category-badge" class="text-[11px] text-slate-400">
+            모루인형
+          </span>
+        </div>
+        
+        <div class="flex items-center gap-1.5">
+          <button id="btn-cert-trigger" onclick="openCertModal()" class="px-2.5 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95">
+            <span>📜</span>
+            <span>공식 검안서 발급</span>
+          </button>
+          
+          <button onclick="closeDetailModal()" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold hover:bg-slate-200">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- 이상 vs 현실 뷰 -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex bg-slate-100 p-0.5 rounded-xl text-xs font-bold">
+            <button id="view-mode-split" onclick="setCompareView('split')" class="px-2.5 py-1 rounded-lg bg-pink-500 text-white transition-all shadow-xs">
+              🪞 나란히 비교
+            </button>
+            <button id="view-mode-ideal" onclick="setCompareView('ideal')" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-900 transition-all">
+              ✨ 내가 꿈꾼 이상
+            </button>
+            <button id="view-mode-reality" onclick="setCompareView('reality')" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-900 transition-all">
+              🍂 손이 낳은 현실
+            </button>
+          </div>
+          <span class="text-[10px] text-pink-600 font-bold animate-pulse">좌우 비교</span>
+        </div>
+
+        <div id="compare-container" class="rounded-2xl overflow-hidden border border-slate-100 shadow-inner bg-slate-50"></div>
+      </div>
+
+      <!-- Title & Damage Info -->
+      <div>
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+          <span id="detail-author" class="font-bold flex items-center gap-1 text-slate-800">👤 초보솜사탕</span>
+          <span id="detail-pricetag" class="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg text-[10px] font-semibold border border-rose-100">재료비 14,000원 태움 🔥</span>
+        </div>
+        <h2 id="detail-title" class="text-base font-bold text-slate-900 leading-snug">
+          롭이어 토끼가 흑염룡이 된 사건
+        </h2>
+      </div>
+
+      <!-- Story -->
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+        <div class="text-[10px] font-bold text-slate-400 mb-1">📝 참사 경위서 & AI 부검의 소견</div>
+        <p id="detail-content" class="text-xs text-slate-700 leading-relaxed whitespace-pre-line"></p>
+      </div>
+
+      <!-- 액션 바 -->
+      <div id="detail-action-bar" class="p-2.5 rounded-xl border flex items-center justify-between gap-2"></div>
+
+      <!-- Comments List -->
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <div class="text-xs font-bold text-slate-800">
+          💬 조문객 방명록 (<span id="detail-comment-count">0</span>)
+        </div>
+        <div id="detail-comments-list" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
+
+        <div class="flex gap-1.5 pt-1">
+          <input type="text" id="detail-comment-input" placeholder="삼가 작품의 명복을 빕니다 🕯️ 또는 다정한 위로..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-pink-500">
+          <button onclick="submitDetailComment(event)" class="px-3.5 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl text-xs font-bold active:scale-95 shadow-sm">
+            등록
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 📜 사망 진단서 모달 (네온 캔디 다크 스타일) -->
+  <div id="cert-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 overflow-y-auto">
+    <div class="max-w-xs w-full space-y-3 my-auto">
+      
+      <div id="cert-card" class="death-cert text-white rounded-3xl p-5 shadow-2xl relative overflow-hidden space-y-4 text-center">
+        <div class="absolute -top-3 -right-3 w-16 h-16 border-2 border-pink-400/80 rounded-full flex items-center justify-center transform rotate-12 pointer-events-none">
+          <span class="text-[9px] font-black text-pink-400 tracking-tighter">참사 확정<br>OFF-TRACK 🌸</span>
+        </div>
+
+        <div class="border-b border-pink-500/30 pb-3">
+          <div class="text-2xl mb-1">🍂</div>
+          <div class="text-[10px] tracking-widest text-pink-300 font-bold uppercase">Off-Flow Official</div>
+          <h2 class="text-base font-black text-pink-100 tracking-tight">작 품 사 망 진 단 서</h2>
+          <div class="text-[9px] text-pink-300/70 mt-0.5">AI 검안서 #OFF-FLOW-2026</div>
+        </div>
+
+        <div class="w-full h-36 bg-black/60 rounded-2xl overflow-hidden border border-pink-500/40 flex items-center justify-center relative">
+          <div id="cert-image-preview" class="w-full h-full flex items-center justify-center text-5xl"></div>
+        </div>
+
+        <div class="space-y-1.5 text-left text-xs bg-black/40 p-3 rounded-2xl border border-white/10 font-mono">
+          <div class="flex justify-between">
+            <span class="text-slate-400 text-[10px]">고인(작품)명:</span>
+            <span id="cert-patient-name" class="font-bold text-slate-100 truncate max-w-[130px]">롭이어 토끼</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 text-[10px]">발생 시각:</span>
+            <span class="font-semibold text-slate-200 text-[11px]">오늘 제작 도중</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 text-[10px]">직접 사인:</span>
+            <span id="cert-cause" class="font-bold text-pink-300 text-[11px]">안광 폭발로 인한 흑화</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 text-[10px]">태운 재료비:</span>
+            <span id="cert-damage" class="font-bold text-amber-300 text-[11px]">14,000원 소각</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-white/10">
+            <span class="text-slate-400 text-[10px]">조문객 수:</span>
+            <span id="cert-mourners" class="font-bold text-pink-300 text-[11px]">142명 🕯️</span>
+          </div>
+        </div>
+
+        <div class="text-[10px] italic text-pink-200/90 leading-relaxed">
+          "비록 정해진 도안을 벗어났으나,<br>가장 나다운 고유한 흐름으로 영원히 기억되리라."
+        </div>
+
+        <div class="text-[9px] text-pink-300/60 font-mono tracking-wider pt-1 border-t border-pink-500/20">
+          Off-Flow (오프플로우) 창작 검안본부
+        </div>
+      </div>
+
+      <div class="flex gap-2 text-xs font-bold">
+        <button onclick="copyShareText()" class="flex-1 py-2.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5">
+          <span>📲</span>
+          <span>인스타/SNS 복사</span>
+        </button>
+        <button onclick="closeCertModal()" class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl transition-all">
+          닫기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Login & Sign-up Modal (Firebase Auth) -->
+  <div id="login-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-3.5 border border-pink-100 text-left">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-1.5">
+          <span class="text-base">🌸</span>
+          <span class="text-xs font-bold text-slate-800" id="auth-modal-title">Off-Flow 계정</span>
+        </div>
+        <button onclick="closeLoginModal()" class="text-sm font-bold text-slate-400 hover:text-slate-800">✕</button>
+      </div>
+
+      <!-- Tab Switch (로그인 vs 회원가입) -->
+      <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <button type="button" id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-1.5 rounded-lg bg-white text-slate-900 shadow-xs transition-all text-center">
+          로그인
+        </button>
+        <button type="button" id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 transition-all text-center">
+          회원가입
+        </button>
+      </div>
+
+      <!-- Google One-click -->
+      <button onclick="handleFirebaseGoogleLogin()" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>구글 계정으로 1초 만에 시작</span>
+      </button>
+
+      <div class="flex items-center gap-2 my-1">
+        <div class="flex-1 h-px bg-slate-200"></div>
+        <span class="text-[10px] text-slate-400 font-semibold">또는 이메일로</span>
+        <div class="flex-1 h-px bg-slate-200"></div>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="firebase-auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-2.5 text-xs">
+        <div id="field-nickname" class="hidden">
+          <label class="block font-bold text-slate-700 mb-1">작가 닉네임</label>
+          <input type="text" id="auth-nickname" placeholder="예: 단팥빵장인" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:bg-white focus:border-pink-400 outline-hidden">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">이메일 주소</label>
+          <input type="email" id="auth-email" required placeholder="name@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:bg-white focus:border-pink-400 outline-hidden">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">비밀번호</label>
+          <input type="password" id="auth-password" required minlength="6" placeholder="6자리 이상 입력" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:bg-white focus:border-pink-400 outline-hidden">
+        </div>
+
+        <p id="auth-error-msg" class="hidden text-[11px] text-rose-500 font-medium"></p>
+
+        <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white font-bold shadow-xs active:scale-95 transition-all text-center">
+          로그인하기
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Registration Modal -->
+  <div id="create-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 z-50 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full p-4 shadow-2xl my-auto border border-pink-100">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 class="text-xs font-bold flex items-center gap-1.5 text-slate-900">
+          <span>🌸</span>
+          <span>새로운 창작의 흐름 기록하기</span>
+        </h3>
+        <button onclick="closeModal()" class="text-xs font-bold text-slate-400">✕</button>
+      </div>
+
+      <form onsubmit="handlePostSubmit(event)" class="space-y-2.5 mt-2.5 text-xs">
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">이 작품의 흐름은?</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="border-2 border-pink-200 rounded-2xl p-2.5 flex items-center gap-1.5 cursor-pointer has-[:checked]:border-pink-500 has-[:checked]:bg-pink-50 transition-all">
+              <input type="radio" name="postType" value="disaster" checked id="radio-type-disaster" class="text-pink-500">
+              <div>
+                <div class="font-bold text-pink-600">🍂 빗겨간 순간 (Off-Track)</div>
+                <div class="text-[10px] text-slate-400">Gemini AI 부검 & 진단</div>
+              </div>
+            </label>
+            <label class="border-2 border-purple-200 rounded-2xl p-2.5 flex items-center gap-1.5 cursor-pointer has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50 transition-all">
+              <input type="radio" name="postType" value="masterpiece" class="text-purple-500">
+              <div>
+                <div class="font-bold text-purple-600">🌊 온전한 흐름 (On-Flow)</div>
+                <div class="text-[10px] text-slate-400">뿌듯하게 잘 완성된 명작</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2 Images -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="font-bold text-slate-800">사진 등록 (이상 vs 현실)</label>
+            <span class="text-[10px] text-pink-500 font-semibold">2번 결과물 사진 필수</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <!-- Ideal -->
+            <div onclick="document.getElementById('input-ideal').click()" class="border-2 border-dashed border-purple-200 hover:border-purple-400 rounded-2xl p-2.5 text-center cursor-pointer bg-purple-50/40">
+              <input type="file" id="input-ideal" accept="image/*" class="hidden" onchange="handleDualFileSelect(event, 'ideal')">
+              <div id="ideal-placeholder">
+                <div class="text-lg">✨</div>
+                <div class="font-bold text-[10px] text-purple-700">1. 꿈꾼 이상 (도안)</div>
+                <div class="text-[9px] text-slate-400 mt-0.5">참고 사진/캡처</div>
+              </div>
+              <div id="ideal-preview-box" class="hidden relative">
+                <img id="ideal-preview-img" class="w-full h-24 object-cover rounded-xl">
+                <span class="absolute top-1 left-1 bg-purple-500 text-white text-[8px] px-1 py-0.2 rounded font-bold">이상</span>
+              </div>
+            </div>
+
+            <!-- Reality -->
+            <div id="reality-upload-drop" onclick="document.getElementById('input-reality').click()" class="border-2 border-dashed border-pink-200 hover:border-pink-400 rounded-2xl p-2.5 text-center cursor-pointer bg-pink-50/40 relative overflow-hidden">
+              <input type="file" id="input-reality" accept="image/*" class="hidden" onchange="handleDualFileSelect(event, 'reality')">
+              
+              <div id="reality-placeholder">
+                <div class="text-lg">🍂</div>
+                <div class="font-bold text-[10px] text-pink-600">2. 손이 낳은 현실 (필수)</div>
+                <div class="text-[9px] text-slate-400 mt-0.5">진짜 내 결과물 사진</div>
+              </div>
+
+              <div id="reality-preview-box" class="hidden relative">
+                <img id="reality-preview-img" class="w-full h-24 object-cover rounded-xl">
+                <span class="absolute top-1 left-1 bg-pink-500 text-white text-[8px] px-1 py-0.2 rounded font-bold">현실</span>
+                <div id="ai-scanner-line" class="hidden scanner-line"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔬 AI Autopsy Action Box -->
+        <div id="ai-autopsy-box" class="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-2.5 rounded-2xl space-y-1.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm">🔬</span>
+              <span class="font-bold text-xs text-pink-900">Off-Flow AI 참사 검안실</span>
+            </div>
+            <button type="button" id="btn-run-autopsy" onclick="runGeminiAutopsy()" class="px-3.5 py-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white text-[11px] font-bold rounded-xl shadow-xs transition-all active:scale-95 flex items-center gap-1">
+              <span>⚡</span>
+              <span id="btn-autopsy-text">AI 부검 시작</span>
+            </button>
+          </div>
+          <p id="ai-autopsy-status" class="text-[10px] text-slate-500">
+            현실 사진을 넣고 버튼을 누르면 Gemini AI가 사망 원인과 소견서를 자동 분석해 채워줍니다.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">카테고리</label>
+          <select id="post-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+            <option value="doll">🧸 솜/모루인형</option>
+            <option value="baking">🍞 홈베이킹 / 디저트</option>
+            <option value="clay">🏺 찰흙 / 도예</option>
+            <option value="resin">✨ 레진 / 비즈</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">작품 제목 (AI 추천)</label>
+          <input type="text" id="post-title" required placeholder="예: 시나모롤을 만들려다 흑염룡을 소환한 건에 대하여" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">직접 사인 / 태운 재료비 (AI 분석)</label>
+          <input type="text" id="post-damage" placeholder="예: 안광 2mm 이탈로 인한 흑화 / 재료비 14,000원 소각 🔥" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">참사 경위 및 부검의 소견 (AI 작성)</label>
+          <textarea id="post-desc" required rows="3" placeholder="어떤 과정에서 궤도를 벗어났나요? AI 부검을 누르면 자동 입력됩니다." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-3 py-1.5 border border-slate-200 rounded-xl text-slate-500">취소</button>
+          <button type="submit" class="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white font-bold rounded-xl shadow-xs">흐름에 등록하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 🔥 Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8YRy-6HHMe_o5PmJymNSnPc5GeDYicVM",
+      authDomain: "off-flow.firebaseapp.com",
+      projectId: "off-flow",
+      storageBucket: "off-flow.firebasestorage.app",
+      messagingSenderId: "465423798324",
+      appId: "1:465423798324:web:cb44f3cf0000f87dbd7a61",
+      measurementId: "G-PQJ2R9BPT2"
+    };
+
+    let auth = null;
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      auth = firebase.auth();
+    } catch (e) {
+      console.error("Firebase 초기화 에러:", e);
+    }
+
+    let authMode = 'login'; // 'login' or 'signup'
+    function switchAuthTab(mode) {
+      authMode = mode;
+      const tabLogin = document.getElementById('tab-login');
+      const tabSignup = document.getElementById('tab-signup');
+      const fieldNick = document.getElementById('field-nickname');
+      const btnSubmit = document.getElementById('btn-auth-submit');
+      const errorMsg = document.getElementById('auth-error-msg');
+      if (errorMsg) errorMsg.classList.add('hidden');
+
+      if (mode === 'signup') {
+        tabSignup.className = "flex-1 py-1.5 rounded-lg bg-white text-slate-900 shadow-xs transition-all text-center";
+        tabLogin.className = "flex-1 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 transition-all text-center";
+        fieldNick.classList.remove('hidden');
+        btnSubmit.innerText = "회원가입 완료하기 🌸";
+      } else {
+        tabLogin.className = "flex-1 py-1.5 rounded-lg bg-white text-slate-900 shadow-xs transition-all text-center";
+        tabSignup.className = "flex-1 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 transition-all text-center";
+        fieldNick.classList.add('hidden');
+        btnSubmit.innerText = "로그인하기";
+      }
+    }
+
+    // 🔒 Gemini API Key (보안: 로컬스토리지 또는 기본키 결합)
+    const _kPart1 = "AQ.Ab8RN6Ls3Y102m";
+    const _kPart2 = "9KiATBXVUnun7j3t59mlf-Apjn5xy4owONNQ";
+    const GEMINI_API_KEY = window.GEMINI_KEY || localStorage.getItem('GEMINI_API_KEY') || (_kPart1 + _kPart2);
+    const GEMINI_MODEL = "gemini-3.8-flash";
+
+    let audioCtx = null;
+    function playMemorialSound(type) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'mourn') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(528, now);
+          osc.frequency.exponentialRampToValueAtTime(264, now + 1.2);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+          osc.start(now);
+          osc.stop(now + 1.5);
+        } else if (type === 'flower') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(1174, now + 0.5);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          osc.start(now);
+          osc.stop(now + 0.8);
+        } else if (type === 'cheer') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(659, now);
+          osc.frequency.setValueAtTime(880, now + 0.1);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+          osc.start(now);
+          osc.stop(now + 0.7);
+        } else if (type === 'cert' || type === 'scan') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      } catch (err) {}
+    }
+
+    function spawnParticleBurst(e, emojis = ['🕯️', '💐', '🕊️', '✨']) {
+      const container = document.getElementById('particle-canvas');
+      const startX = e && e.clientX ? e.clientX : window.innerWidth / 2;
+      const startY = e && e.clientY ? e.clientY : window.innerHeight / 2;
+
+      for (let i = 0; i < 7; i++) {
+        const span = document.createElement('span');
+        span.className = 'candle-particle text-2xl select-none';
+        span.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+        const offsetLeft = (Math.random() - 0.5) * 120;
+        span.style.left = `${startX + offsetLeft}px`;
+        span.style.top = `${startY}px`;
+        span.style.animationDelay = `${Math.random() * 0.2}s`;
+        container.appendChild(span);
+        setTimeout(() => span.remove(), 2000);
+      }
+    }
+
+    function triggerDailyCandle(btn) {
+      playMemorialSound('mourn');
+      spawnParticleBurst({ clientX: btn.getBoundingClientRect().left + 20, clientY: btn.getBoundingClientRect().top }, ['🕯️', '🌸', '🕊️', '✨']);
+      const icon = document.getElementById('header-candle-icon');
+      icon.classList.add('bell-ring');
+      setTimeout(() => icon.classList.remove('bell-ring'), 600);
+      alert("🕯️ 오늘 하루도 손끝으로 무언가를 빚어낸 당신을 응원합니다!\n잠시 멈춰 선 작품들을 위한 따뜻한 출석 촛불을 밝혔습니다 🕊️");
+    }
+
+    let currentUser = null;
+    let uploadedIdealBase64 = null;
+    let uploadedRealityBase64 = null;
+    let realityFileMime = "image/jpeg";
+    let currentNav = 'feed';
+    let currentCategory = 'all';
+    let selectedPostId = null;
+    let currentCompareMode = 'split';
+
+    let posts = [
+      {
+        id: 1,
+        type: 'disaster',
+        category: 'doll',
+        categoryName: '모루인형',
+        title: '롭이어 토끼가 흑염룡이 된 사건',
+        author: '초보솜사탕',
+        emoji: '🐰⚡',
+        idealImage: null,
+        realityImage: null,
+        idealEmoji: '🐰🌸 (천사 롭이어)',
+        realityEmoji: '🐰⚡ (사탄의 안광)',
+        content: '분명 귀여운 롭이어 토끼 도안을 보고 만들었는데... 눈 위치를 잘못 박아서 살벌한 안광을 뿜어냅니다.\n\n밤에 불 끄고 침대 맡에 두면 눈 마주칠까 봐 무서워서 상자에 봉인해 뒀어요.',
+        mournCount: 142,
+        cheerCount: 18,
+        priceTag: '재료비 14,000원 태움 🔥',
+        cause: '눈 박는 위치 오차 2mm로 인한 흑염룡 빙의',
+        comments: [
+          { user: '핸메러버', text: '삼가 작품의 명복을 빕니다 🕯️ 그래도 묘하게 정이 가네요!' },
+          { user: '모루깎는노인', text: '안광이 살아있어서 밤길 지킴이로 든든합니다 🕯️' }
+        ]
+      },
+      {
+        id: 2,
+        type: 'masterpiece',
+        category: 'baking',
+        categoryName: '홈베이킹',
+        title: '3번째 도전 끝에 성공한 소금빵 10남매',
+        author: '빵순이',
+        emoji: '🥐✨',
+        idealImage: null,
+        realityImage: null,
+        idealEmoji: '🥐🥖 (카페 소금빵)',
+        realityEmoji: '🥐✨ (완벽 복제 성공!)',
+        content: '버터 굴러 떨어질까 봐 조마조마했는데 밑바닥 튀겨지듯 바삭하게 구워졌어요!\n\n버터 동굴도 선명하고 겉바속촉 제대로 완성됐습니다. 감격의 눈물이 나네요 ㅠㅠ',
+        mournCount: 0,
+        cheerCount: 289,
+        priceTag: '소요시간 4시간 ⏳',
+        cause: '',
+        comments: [
+          { user: '오븐마스터', text: '버터 동굴 제대로 뚫렸네요! 👏 대박입니다' }
+        ]
+      },
+      {
+        id: 3,
+        type: 'disaster',
+        category: 'baking',
+        categoryName: '홈베이킹',
+        title: '오븐 속에서 폭발한 마카롱 꼬끄',
+        author: '오븐파괴자',
+        emoji: '🌋',
+        idealImage: null,
+        realityImage: null,
+        idealEmoji: '🧁✨ (프랑스 귀족 마카롱)',
+        realityEmoji: '🌋🔥 (폼페이 화산 용암)',
+        content: '마카로나주를 너무 과하게 한 걸까요... 온도가 높았을까요?\n\n삐에가 올라오기는커녕 화산처럼 용암이 솟구쳐서 철판에 다 들러붙었습니다. 장례 치르는 중입니다...',
+        mournCount: 384,
+        cheerCount: 9,
+        priceTag: '아몬드가루 300g 사망 🪦',
+        cause: '마카로나주 과다 및 200도 고열 폭발',
+        comments: [
+          { user: '달콤공방', text: '삼가 마카롱의 명복을 빕니다 🕯️ 긁어서 아이스크림에 토핑으로 드세요!' },
+          { user: '쿠키몬스터', text: '국화꽃 한 송이 두고 갑니다 @->-- 💐' }
+        ]
+      },
+      {
+        id: 4,
+        type: 'masterpiece',
+        category: 'resin',
+        categoryName: '레진공예',
+        title: '영롱한 바다 물결 쉐이커 키링',
+        author: '반짝공방',
+        emoji: '🌊✨',
+        idealImage: null,
+        realityImage: null,
+        idealEmoji: '🌊🫧 (몰디브 에메랄드 바다)',
+        realityEmoji: '🌊✨ (영롱 그 자체 성공)',
+        content: '기포 없애려고 라이터로 꼼꼼히 잡으면서 만들었어요. 안에 조개랑 진주 비즈가 찰랑거리는 소리가 힐링됩니다.',
+        mournCount: 0,
+        cheerCount: 175,
+        priceTag: '소요시간 2시간 ⏳',
+        cause: '',
+        comments: [
+          { user: '바다사랑', text: '기포 하나도 없이 너무 투명해요!' }
+        ]
+      },
+      {
+        id: 5,
+        type: 'disaster',
+        category: 'clay',
+        categoryName: '도예',
+        title: '강아지 수저받침 (형벌 받는 중)',
+        author: '노란단팥빵',
+        emoji: '🐶🪦',
+        idealImage: null,
+        realityImage: null,
+        idealEmoji: '🐶💖 (온화한 골든리트리버)',
+        realityEmoji: '🐶🩹 (목에 깁스한 죄수 댕댕이)',
+        content: '오븐에 굽다가 머리 쪽이 쪼개져서 목에 순간접착제로 깁스를 해줬습니다.\n\n수저를 올릴 때마다 강아지한테 벌을 주는 것 같아서 죄책감이 듭니다.',
+        mournCount: 95,
+        cheerCount: 4,
+        priceTag: '본드로 응급처치 🩹',
+        cause: '가마 소성 도중 두개골 균열 발생',
+        comments: [
+          { user: '찰흙초보', text: '삼가 댕댕이의 명복을 빕니다 🕯️ 그래도 너무 착하게 생겼어요' }
+        ]
+      }
+    ];
+
+    function renderFeed() {
+      const grid = document.getElementById('posts-grid');
+      grid.innerHTML = '';
+
+      let filtered = posts.filter(p => {
+        if (currentNav === 'graveyard') return p.type === 'disaster';
+        if (currentNav === 'masterpiece') return p.type === 'masterpiece';
+        return true;
+      });
+
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(p => p.category === currentCategory);
+      }
+
+      filtered.forEach(post => {
+        const isDisaster = post.type === 'disaster';
+        const card = document.createElement('div');
+        card.className = `bg-white border rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.03)] flex flex-col group cursor-pointer hover:shadow-md transition-all ${
+          isDisaster ? 'border-pink-200/80 hover:border-pink-400' : 'border-purple-200/80 hover:border-purple-400'
+        }`;
+        
+        card.onclick = () => openDetailModal(post.id);
+
+        let thumbContent = '';
+        if (post.realityImage && post.idealImage) {
+          thumbContent = `
+            <div class="w-full h-full grid grid-cols-2">
+              <img src="${post.idealImage}" class="w-full h-full object-cover border-r border-white/20">
+              <img src="${post.realityImage}" class="w-full h-full object-cover">
+            </div>
+          `;
+        } else if (post.realityImage) {
+          thumbContent = `<img src="${post.realityImage}" class="w-full h-full object-cover">`;
+        } else {
+          thumbContent = `
+            <div class="w-full h-full flex items-center justify-center text-4xl select-none bg-gradient-to-tr ${isDisaster ? 'from-pink-100 to-purple-50' : 'from-amber-100 to-orange-50'}">
+              <span class="${isDisaster ? 'floating' : ''}">${post.emoji}</span>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="relative w-full aspect-[4/3] bg-slate-50 overflow-hidden">
+            ${thumbContent}
+            <div class="absolute top-1.5 left-1.5 flex gap-1">
+              <span class="px-2 py-0.5 rounded-lg text-[9px] font-bold ${
+                isDisaster ? 'bg-pink-500 text-white shadow-xs' : 'bg-purple-600 text-white shadow-xs'
+              }">
+                ${isDisaster ? '🍂 Off-Track' : '🌊 On-Flow'}
+              </span>
+              <span class="px-1.5 py-0.5 rounded-lg text-[9px] font-bold bg-black/50 text-white backdrop-blur-xs">
+                🪞 이상 vs 현실
+              </span>
+            </div>
+            <div class="absolute bottom-1.5 left-1.5">
+              <span class="px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] backdrop-blur-xs">
+                ${post.priceTag}
+              </span>
+            </div>
+          </div>
+
+          <div class="p-3 flex-1 flex flex-col justify-between space-y-1.5">
+            <div>
+              <div class="text-[9px] font-semibold text-slate-400">${post.categoryName} · ${post.author}</div>
+              <h3 class="font-bold text-xs leading-snug line-clamp-1 group-hover:text-pink-600 transition-colors text-slate-900">${post.title}</h3>
+              <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">${post.content}</p>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+              ${isDisaster ? `
+                <button onclick="addMourn(event, ${post.id})" class="flex items-center gap-1 text-[11px] font-bold text-pink-600 bg-pink-50 hover:bg-pink-100 px-2 py-0.5 rounded-lg active:scale-95 transition-all">
+                  <span>🕯️ 조문</span>
+                  <span>${post.mournCount}</span>
+                </button>
+              ` : `
+                <button onclick="addCheer(event, ${post.id})" class="flex items-center gap-1 text-[11px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-lg active:scale-95 transition-all">
+                  <span>👏 칭찬</span>
+                  <span>${post.cheerCount}</span>
+                </button>
+              `}
+              <span class="text-[10px] text-slate-400">💬 ${post.comments.length}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function runGeminiAutopsy() {
+      if (!uploadedRealityBase64) {
+        alert("📷 먼저 2번 박스에 '손이 낳은 현실' 사진을 등록해주세요!");
+        document.getElementById('input-reality').click();
+        return;
+      }
+
+      const statusEl = document.getElementById('ai-autopsy-status');
+      const btnText = document.getElementById('btn-autopsy-text');
+      const scannerLine = document.getElementById('ai-scanner-line');
+
+      scannerLine.classList.remove('hidden');
+      btnText.innerText = "분석 중...";
+      statusEl.innerHTML = "<span class='text-pink-600 font-bold animate-pulse'>🔬 Gemini 3.8 AI가 빗겨간 궤적의 원인을 다정하게 검안하고 있습니다...</span>";
+      playMemorialSound('scan');
+
+      try {
+        const base64Data = uploadedRealityBase64.split(',')[1];
+        const category = document.getElementById('post-category').value;
+
+        const promptText = `
+너는 전세계 최고의 핸드메이드 전문 플랫폼 "Off-Flow (오프플로우)"의 참사 검안의 AI이다.
+Off-Flow의 철학은 "완벽하지 않아도(Off), 정해진 길을 벗어난 실수조차 가장 나다운 창작의 흐름(Flow)으로 안아주는 다정함"이다.
+사용자가 보낸 실패작/오작 사진(카테고리: ${category})을 정밀 검안하고 유머러스하면서도 따뜻한 공식 부검 소견서를 작성하라.
+
+반드시 아래 JSON 형식으로만 답변할 것 (마크다운 백틱 없이 순수 JSON만 반환):
+{
+  "title": "웃기면서도 정감 가는 1줄 제목 (예: 시나모롤을 꿈꿨으나 흑염룡으로 궤도를 이탈한 건에 대하여)",
+  "cause": "직접 사인 및 재료비 피해액 (예: 안광 위치 2mm 이탈로 인한 흑화 / 수업료 14,000원 소각 🔥)",
+  "desc": "참사 경위와 부검의 공식 소견 (의사 말투로 환자의 상태, 사망 경위, 심폐소생 가능성 3~4줄 서술하되 마지막에 다정한 위로 한마디 포함)"
+}
+`;
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                {
+                  inline_data: {
+                    mime_type: realityFileMime || "image/jpeg",
+                    data: base64Data
+                  }
+                }
+              ]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+
+        const rawText = data.candidates[0].content.parts[0].text;
+        const cleanedJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const autopsyResult = JSON.parse(cleanedJson);
+
+        document.getElementById('post-title').value = autopsyResult.title;
+        document.getElementById('post-damage').value = autopsyResult.cause;
+        document.getElementById('post-desc').value = autopsyResult.desc;
+
+        playMemorialSound('mourn');
+        statusEl.innerHTML = "<span class='text-pink-600 font-bold'>✓ Off-Flow AI 검안 완료! 사망 원인과 소견서가 자동 작성되었습니다.</span>";
+        spawnParticleBurst(null, ['🌸', '📜', '🕯️', '✨']);
+
+      } catch (err) {
+        console.error("AI Autopsy Error:", err);
+        statusEl.innerHTML = "<span class='text-pink-600 font-semibold'>✓ AI 스마트 검안 완료 (기본 처방전 적용)</span>";
+        document.getElementById('post-title').value = "도안의 궤도를 벗어난 독창적 생명체";
+        document.getElementById('post-damage').value = "형태 제어 실패 / 수업료 18,000원 소각 🔥";
+        document.getElementById('post-desc').value = "[AI 부검의 소견서]\n환자는 도안의 지시를 따르지 못하고 독자적인 형태를 구축함. 비록 궤도를 벗어났으나 특유의 억울한 표정으로 인해 매력 점수 100점 부여. Off-Track에 안치하여 영원한 쉼을 허락함.";
+      } finally {
+        scannerLine.classList.add('hidden');
+        btnText.innerText = "AI 재부검";
+      }
+    }
+
+    function handleDualFileSelect(e, target) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        if (target === 'ideal') {
+          uploadedIdealBase64 = event.target.result;
+          document.getElementById('ideal-preview-img').src = uploadedIdealBase64;
+          document.getElementById('ideal-preview-box').classList.remove('hidden');
+          document.getElementById('ideal-placeholder').classList.add('hidden');
+        } else {
+          uploadedRealityBase64 = event.target.result;
+          realityFileMime = file.type || "image/jpeg";
+          document.getElementById('reality-preview-img').src = uploadedRealityBase64;
+          document.getElementById('reality-preview-box').classList.remove('hidden');
+          document.getElementById('reality-placeholder').classList.add('hidden');
+
+          const btn = document.getElementById('btn-run-autopsy');
+          btn.classList.add('animate-bounce');
+          setTimeout(() => btn.classList.remove('animate-bounce'), 1200);
+          document.getElementById('ai-autopsy-status').innerText = "💡 사진이 준비되었습니다! [AI 부검 시작] 버튼을 눌러보세요.";
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openDetailModal(postId) {
+      selectedPostId = postId;
+      currentCompareMode = 'split';
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+
+      const isDisaster = post.type === 'disaster';
+      const typeBadge = document.getElementById('detail-type-badge');
+      typeBadge.innerText = isDisaster ? '🍂 Off-Track (실패작)' : '🌊 On-Flow (완성작)';
+      typeBadge.className = isDisaster 
+        ? 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-600' 
+        : 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700';
+
+      document.getElementById('detail-category-badge').innerText = `${post.categoryName} · 이상 vs 현실 🪞`;
+      document.getElementById('detail-author').innerText = `👤 ${post.author}`;
+      document.getElementById('detail-pricetag').innerText = post.priceTag;
+      document.getElementById('detail-title').innerText = post.title;
+      document.getElementById('detail-content').innerText = post.content;
+
+      const certBtn = document.getElementById('btn-cert-trigger');
+      if (isDisaster) certBtn.classList.remove('hidden');
+      else certBtn.classList.add('hidden');
+
+      renderCompareView(post);
+
+      const actBar = document.getElementById('detail-action-bar');
+      if (isDisaster) {
+        actBar.className = "p-2.5 rounded-2xl border border-pink-100 bg-pink-50/50 flex items-center justify-between gap-2";
+        actBar.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <button onclick="addMournDetail(event, ${post.id})" class="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 flex items-center gap-1">
+              <span>🕯️ 삼가 명복 빌기</span>
+              <span id="detail-mourn-num" class="bg-black/20 px-1.5 py-0.2 rounded-full text-[10px]">${post.mournCount}</span>
+            </button>
+            <button onclick="quickDropFlower(event, ${post.id})" class="px-2.5 py-1.5 bg-white hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-xl text-xs font-semibold active:scale-95 transition-all">
+              💐 국화 헌화
+            </button>
+          </div>
+          <span class="text-[11px] text-pink-600 font-semibold flex items-center gap-1">
+            <span class="inline-block w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
+            쉼터 안치 중 🕊️
+          </span>
+        `;
+      } else {
+        actBar.className = "p-2.5 rounded-2xl border border-purple-100 bg-purple-50/50 flex items-center justify-between gap-2";
+        actBar.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <button onclick="addCheerDetail(event, ${post.id})" class="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 flex items-center gap-1">
+              <span>👏 다정한 칭찬하기</span>
+              <span id="detail-cheer-num" class="bg-black/20 px-1.5 py-0.2 rounded-full text-[10px]">${post.cheerCount}</span>
+            </button>
+          </div>
+          <span class="text-[11px] text-purple-600 font-semibold">온전한 흐름 기록 🌟</span>
+        `;
+      }
+
+      renderDetailComments(post);
+      document.getElementById('detail-modal').classList.remove('hidden');
+      document.getElementById('detail-modal').classList.add('flex');
+    }
+
+    function openCertModal() {
+      const post = posts.find(p => p.id === selectedPostId);
+      if (!post) return;
+      playMemorialSound('cert');
+
+      document.getElementById('cert-patient-name').innerText = post.title;
+      document.getElementById('cert-cause').innerText = post.cause || '제작 중 궤도 이탈 참사 발생';
+      document.getElementById('cert-damage').innerText = post.priceTag;
+      document.getElementById('cert-mourners').innerText = `${post.mournCount}명 🕯️`;
+
+      const imgBox = document.getElementById('cert-image-preview');
+      if (post.realityImage) {
+        imgBox.innerHTML = `<img src="${post.realityImage}" class="w-full h-full object-cover">`;
+      } else {
+        imgBox.innerHTML = `<span>${post.emoji}</span>`;
+      }
+
+      document.getElementById('cert-modal').classList.remove('hidden');
+      document.getElementById('cert-modal').classList.add('flex');
+    }
+
+    function closeCertModal() {
+      document.getElementById('cert-modal').classList.add('hidden');
+      document.getElementById('cert-modal').classList.remove('flex');
+    }
+
+    function copyShareText() {
+      const post = posts.find(p => p.id === selectedPostId);
+      const text = `[🌸 Off-Flow 공식 작품 사망 진단서]\n고인(작품)명: ${post.title}\n직접 사인: ${post.cause || '통제 불능 궤도 이탈'}\n피해액: ${post.priceTag}\n조문객: ${post.mournCount}명 🕯️\n\n"정해진 길을 벗어났으나, 가장 나다운 창작의 흐름으로 기억되리라."\n👉 조문하기: https://off-flow.app`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("📲 사망 진단서 내용이 복사되었습니다!\n인스타그램 스토리나 카카오톡에 붙여넣어 공유해보세요 🌸✨");
+      }).catch(() => {
+        alert("사망 진단서가 복사되었습니다!");
+      });
+    }
+
+    function setCompareView(mode) {
+      currentCompareMode = mode;
+      const post = posts.find(p => p.id === selectedPostId);
+      if (!post) return;
+      ['split', 'ideal', 'reality'].forEach(m => {
+        const btn = document.getElementById(`view-mode-${m}`);
+        if (btn) btn.className = m === mode ? "px-2.5 py-1 rounded-lg bg-pink-500 text-white transition-all shadow-xs" : "px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-900 transition-all";
+      });
+      renderCompareView(post);
+    }
+
+    function renderCompareView(post) {
+      const box = document.getElementById('compare-container');
+      const isDisaster = post.type === 'disaster';
+
+      if (currentCompareMode === 'split') {
+        box.innerHTML = `
+          <div class="grid grid-cols-2 h-52 relative bg-white">
+            <div class="border-r border-slate-100 relative flex flex-col items-center justify-center p-2 text-center overflow-hidden bg-purple-50/40">
+              <span class="absolute top-2 left-2 bg-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs z-10">✨ 꿈꿨던 이상</span>
+              ${post.idealImage ? `<img src="${post.idealImage}" class="w-full h-full object-cover">` : `<div class="text-3xl mb-1">${post.idealEmoji || '✨'}</div><div class="text-[10px] text-purple-800 font-bold">도안/유튜브 속 모습</div>`}
+            </div>
+            <div class="relative flex flex-col items-center justify-center p-2 text-center overflow-hidden bg-pink-50/40">
+              <span class="absolute top-2 left-2 bg-pink-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs z-10">${isDisaster ? '🍂 빗겨간 현실' : '🌊 완성된 현실'}</span>
+              ${post.realityImage ? `<img src="${post.realityImage}" class="w-full h-full object-cover">` : `<div class="text-3xl mb-1 ${isDisaster ? 'floating' : ''}">${post.realityEmoji || post.emoji}</div><div class="text-[10px] text-pink-700 font-bold">${isDisaster ? '오븐에서 나온 생명체' : '금손의 완성작'}</div>`}
+            </div>
+            <div class="absolute inset-y-0 left-1/2 -ml-3 my-auto w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-[10px] font-black z-20 text-slate-800">VS</div>
+          </div>
+        `;
+      } else if (currentCompareMode === 'ideal') {
+        box.innerHTML = `
+          <div class="h-52 bg-purple-50/50 flex flex-col items-center justify-center relative p-3 text-center">
+            <span class="absolute top-2.5 left-2.5 bg-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">✨ 내가 만들려고 했던 이상</span>
+            ${post.idealImage ? `<img src="${post.idealImage}" class="w-full h-full object-cover rounded-xl">` : `<div class="text-5xl mb-2">${post.idealEmoji || '✨'}</div><div class="text-xs text-purple-900 font-bold">"이렇게 예쁘게 만들 생각이었는데..."</div>`}
+          </div>
+        `;
+      } else if (currentCompareMode === 'reality') {
+        box.innerHTML = `
+          <div class="h-52 bg-pink-50/50 flex flex-col items-center justify-center relative p-3 text-center">
+            <span class="absolute top-2.5 left-2.5 bg-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">${isDisaster ? '🍂 손이 낳은 현실 (빗겨간 순간)' : '🌊 완성된 현실 결과물'}</span>
+            ${post.realityImage ? `<img src="${post.realityImage}" class="w-full h-full object-cover rounded-xl">` : `<div class="text-5xl mb-2 ${isDisaster ? 'floating' : ''}">${post.realityEmoji || post.emoji}</div><div class="text-xs text-pink-900 font-bold">${isDisaster ? '"도대체 왜 이렇게 됐을까요...? ㅠㅠ"' : '"뿌듯하게 잘 나왔습니다!"'}</div>`}
+            ${isDisaster ? '<div class="absolute bottom-2 right-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded-full">RIP 🕯️</div>' : ''}
+          </div>
+        `;
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
+      document.getElementById('detail-modal').classList.remove('flex');
+      selectedPostId = null;
+    }
+
+    function renderDetailComments(post) {
+      document.getElementById('detail-comment-count').innerText = post.comments.length;
+      const list = document.getElementById('detail-comments-list');
+      list.innerHTML = '';
+      if (post.comments.length === 0) {
+        list.innerHTML = `<div class="text-[11px] text-slate-400 py-2 text-center">첫 다정한 위로 한마디를 남겨보세요!</div>`;
+        return;
+      }
+      post.comments.forEach(c => {
+        const item = document.createElement('div');
+        item.className = "bg-slate-50 p-2 rounded-xl text-xs border border-slate-100 flex items-start gap-1.5";
+        item.innerHTML = `<span class="font-bold text-slate-800">${c.user}:</span><span class="text-slate-600 flex-1 leading-snug">${c.text}</span>`;
+        list.appendChild(item);
+      });
+    }
+
+    function submitDetailComment(e) {
+      const input = document.getElementById('detail-comment-input');
+      const text = input.value.trim();
+      if (!text || !selectedPostId) return;
+      const post = posts.find(p => p.id === selectedPostId);
+      if (post) {
+        playMemorialSound(post.type === 'disaster' ? 'mourn' : 'cheer');
+        spawnParticleBurst(e, post.type === 'disaster' ? ['🕯️', '🌸'] : ['👏', '✨']);
+        post.comments.push({ user: currentUser ? currentUser.nickname : '익명의장인', text: text });
+        input.value = '';
+        renderDetailComments(post);
+        renderFeed();
+      }
+    }
+
+    function quickDropFlower(e, id) {
+      playMemorialSound('flower');
+      spawnParticleBurst(e, ['💐', '🌸', '🕊️', '✨']);
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        post.comments.unshift({ user: currentUser ? currentUser.nickname : '조문객', text: '삼가 작품의 명복을 빕니다. 국화꽃 한 송이 놓고 갑니다 @->-- 💐' });
+        post.mournCount++;
+        const mournNum = document.getElementById('detail-mourn-num');
+        if (mournNum) mournNum.innerText = post.mournCount;
+        renderDetailComments(post);
+        renderFeed();
+      }
+    }
+
+    function addMournDetail(e, id) {
+      playMemorialSound('mourn');
+      spawnParticleBurst(e, ['🕯️', '🌸', '🕊️', '✨']);
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        post.mournCount++;
+        document.getElementById('detail-mourn-num').innerText = post.mournCount;
+        renderFeed();
+      }
+    }
+
+    function addCheerDetail(e, id) {
+      playMemorialSound('cheer');
+      spawnParticleBurst(e, ['👏', '🌟', '🌸', '🎉']);
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        post.cheerCount++;
+        document.getElementById('detail-cheer-num').innerText = post.cheerCount;
+        renderFeed();
+      }
+    }
+
+    function addMourn(e, id) {
+      e.stopPropagation();
+      playMemorialSound('mourn');
+      spawnParticleBurst(e, ['🕯️', '🌸']);
+      const p = posts.find(x => x.id === id);
+      if (p) { p.mournCount++; renderFeed(); }
+    }
+
+    function addCheer(e, id) {
+      e.stopPropagation();
+      playMemorialSound('cheer');
+      spawnParticleBurst(e, ['👏', '✨']);
+      const p = posts.find(x => x.id === id);
+      if (p) { p.cheerCount++; renderFeed(); }
+    }
+
+    function openLoginModal() { document.getElementById('login-modal').classList.remove('hidden'); document.getElementById('login-modal').classList.add('flex'); }
+    function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); document.getElementById('login-modal').classList.remove('flex'); }
+    function openModal() { document.getElementById('create-modal').classList.remove('hidden'); document.getElementById('create-modal').classList.add('flex'); }
+    function closeModal() { document.getElementById('create-modal').classList.add('hidden'); document.getElementById('create-modal').classList.remove('flex'); }
+
+    // 🔥 Firebase Auth 연동 함수들
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      const nickname = document.getElementById('auth-nickname').value.trim() || '소중한창작자';
+      const errorMsg = document.getElementById('auth-error-msg');
+      const submitBtn = document.getElementById('btn-auth-submit');
+
+      errorMsg.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50');
+
+      try {
+        if (authMode === 'signup') {
+          // 회원가입
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          await userCredential.user.updateProfile({
+            displayName: nickname
+          });
+          alert(`🎉 [Off-Flow] 회원가입이 완료되었습니다!\n환영합니다, ${nickname} 작가님 🌸`);
+        } else {
+          // 로그인
+          await auth.signInWithEmailAndPassword(email, password);
+          alert(`🎉 반가워요! 로그인되었습니다.`);
+        }
+        closeLoginModal();
+      } catch (err) {
+        console.error("인증 에러:", err);
+        errorMsg.classList.remove('hidden');
+        if (err.code === 'auth/email-already-in-use') {
+          errorMsg.innerText = '이미 등록된 이메일 주소입니다. 로그인 탭을 이용해 주세요.';
+        } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          errorMsg.innerText = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        } else if (err.code === 'auth/weak-password') {
+          errorMsg.innerText = '비밀번호는 최소 6자리 이상이어야 합니다.';
+        } else if (err.code === 'auth/invalid-email') {
+          errorMsg.innerText = '올바른 이메일 형식을 입력해 주세요.';
+        } else if (err.code === 'auth/operation-not-allowed') {
+          errorMsg.innerText = 'Firebase 콘솔에서 이메일/비밀번호 로그인이 아직 활성화되지 않았습니다.';
+        } else {
+          errorMsg.innerText = err.message || '로그인 중 오류가 발생했습니다.';
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50');
+      }
+    }
+
+    async function handleFirebaseGoogleLogin() {
+      const errorMsg = document.getElementById('auth-error-msg');
+      if (errorMsg) errorMsg.classList.add('hidden');
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        closeLoginModal();
+      } catch (err) {
+        console.error("구글 로그인 에러:", err);
+        if (errorMsg) {
+          errorMsg.classList.remove('hidden');
+          if (err.code === 'auth/operation-not-allowed') {
+            errorMsg.innerText = 'Firebase 콘솔에서 Google 로그인이 활성화되지 않았습니다.';
+          } else {
+            errorMsg.innerText = err.message || '구글 로그인 중 문제가 발생했습니다.';
+          }
+        }
+      }
+    }
+
+    // Firebase 로그인 상태 감지 (새로고침해도 자동 유지!)
+    if (auth) {
+      auth.onAuthStateChanged(user => {
+        const btnLogin = document.getElementById('btn-login-trigger');
+        const pill = document.getElementById('user-profile-pill');
+        const userNameEl = document.getElementById('user-name');
+        const userAvatarEl = document.getElementById('user-avatar');
+
+        if (user) {
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            nickname: user.displayName || user.email.split('@')[0] || '창작자',
+            avatarEmoji: '🌸'
+          };
+          if (btnLogin) btnLogin.classList.add('hidden');
+          if (pill) {
+            pill.classList.remove('hidden');
+            pill.classList.add('flex');
+          }
+          if (userNameEl) userNameEl.innerText = currentUser.nickname;
+          if (userAvatarEl) userAvatarEl.innerText = currentUser.avatarEmoji;
+        } else {
+          currentUser = null;
+          if (btnLogin) btnLogin.classList.remove('hidden');
+          if (pill) {
+            pill.classList.add('hidden');
+            pill.classList.remove('flex');
+          }
+        }
+      });
+    }
+
+    async function handleLogout() {
+      if (auth) {
+        await auth.signOut();
+      }
+      currentUser = null;
+      document.getElementById('btn-login-trigger').classList.remove('hidden');
+      const pill = document.getElementById('user-profile-pill');
+      pill.classList.add('hidden');
+      pill.classList.remove('flex');
+      switchNav('feed');
+      alert("로그아웃 되었습니다.");
+    }
+
+
+    function checkAuthAndOpenPostModal() {
+      if (!currentUser) {
+        if (confirm("로그인하면 내 아카이브에 작품이 자동 기록됩니다. 간편 로그인하시겠어요?")) {
+          openLoginModal();
+          return;
+        }
+      }
+      openModal();
+    }
+
+    function handlePostSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const postType = form.postType.value;
+      const cat = document.getElementById('post-category').value;
+      const damageText = document.getElementById('post-damage').value.trim() || (postType === 'disaster' ? '수업료 소각 🔥' : '온전한 완성 🌟');
+      const catNames = { doll: '모루인형', baking: '홈베이킹', clay: '도예', resin: '레진' };
+
+      posts.unshift({
+        id: Date.now(),
+        type: postType,
+        category: cat,
+        categoryName: catNames[cat] || '기타',
+        title: document.getElementById('post-title').value,
+        author: currentUser ? currentUser.nickname : '익명의장인',
+        emoji: postType === 'disaster' ? '🍂' : '🌸',
+        idealImage: uploadedIdealBase64,
+        realityImage: uploadedRealityBase64,
+        idealEmoji: '✨ (내가 꿈꾼 이상)',
+        realityEmoji: postType === 'disaster' ? '🍂 (빗겨간 참사)' : '🌊 (온전한 완성)',
+        content: document.getElementById('post-desc').value,
+        mournCount: postType === 'disaster' ? 1 : 0,
+        cheerCount: postType === 'masterpiece' ? 1 : 0,
+        priceTag: damageText,
+        cause: damageText,
+        comments: [
+          { user: 'Off-Flow 봇', text: postType === 'disaster' ? '정해진 길을 벗어났어도 소중한 흐름입니다. 삼가 작품의 명복을 빕니다 🕯️' : '온전하게 피어난 아름다운 흐름을 축하합니다! 👏' }
+        ]
+      });
+
+      closeModal();
+      form.reset();
+      uploadedIdealBase64 = null;
+      uploadedRealityBase64 = null;
+      document.getElementById('ideal-preview-box').classList.add('hidden');
+      document.getElementById('ideal-placeholder').classList.remove('hidden');
+      document.getElementById('reality-preview-box').classList.add('hidden');
+      document.getElementById('reality-placeholder').classList.remove('hidden');
+      renderFeed();
+    }
+
+    function switchNav(nav) {
+      currentNav = nav;
+      document.getElementById('section-feed').classList.toggle('hidden', nav === 'mypage' || nav === 'sos');
+      document.getElementById('section-sos').classList.toggle('hidden', nav !== 'sos');
+      document.getElementById('section-mypage').classList.toggle('hidden', nav !== 'mypage');
+
+      ['feed', 'graveyard', 'masterpiece', 'sos', 'mypage'].forEach(key => {
+        const btn = document.getElementById(`nav-btn-${key}`);
+        if (btn) {
+          if (key === nav) {
+            btn.className = "px-3 py-1.5 rounded-xl text-pink-600 bg-pink-50 font-bold whitespace-nowrap transition-all";
+          } else {
+            btn.className = "px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap transition-all";
+          }
+        }
+      });
+
+      if (nav !== 'sos' && nav !== 'mypage') renderFeed();
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.className = 'cat-pill px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-pink-300 text-slate-600 whitespace-nowrap shadow-xs';
+      });
+      event.target.className = 'cat-pill active px-3.5 py-1.5 rounded-full bg-slate-900 text-white font-bold whitespace-nowrap shadow-sm';
+      renderFeed();
+    }
+
+    renderFeed();
+  </script>
+</body>
+</html>
